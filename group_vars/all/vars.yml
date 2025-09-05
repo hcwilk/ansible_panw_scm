@@ -1,0 +1,4 @@
+# Non-secret variables
+api_auth_url: "https://auth.apps.paloaltonetworks.com/oauth2/access_token"
+api_base_url: "https://api.sase.paloaltonetworks.com"
+api_scope: "tsg_id:1496942954"
