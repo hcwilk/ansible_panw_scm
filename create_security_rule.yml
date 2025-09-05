@@ -1,52 +1,21 @@
 ---
-- name: Authenticate and Use API Token
+- name: Create Palo Alto Networks Security Rule
   hosts: localhost
   gather_facts: false
 
   tasks:
-    # Display the auth token being used
-    #   ansible.builtin.debug:
-    #     var: api_auth_token
-    #   no_log: true # Prevents the secret from being written to logs
+    - name: Authenticate to the API and get access token
+      ansible.builtin.import_tasks: tasks/authenticate.yml
 
-    - name: Get Bearer Token
-      ansible.builtin.uri:
-        url: "{{ api_auth_url }}"
-        method: POST
-        headers:
-          Authorization: "{{ api_auth_token }}"
-        body_format: form-urlencoded
-        body:
-          grant_type: "client_credentials"
-          scope: "{{ api_scope }}"
-        status_code: 200
-      register: auth_response
-
-    - name: Set the access token as a fact
-      ansible.builtin.set_fact:
-        api_access_token: "{{ auth_response.json.access_token }}"
-
-    - name: Use the token in a subsequent API call
-      ansible.builtin.uri:
-        url: "{{ api_base_url }}/sse/config/v1/url-categories?folder=Shared"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ api_access_token }}"
-      register: api_data_response
-
-    - name: Display the results from the authenticated call
-      ansible.builtin.debug:
-        var: api_data_response.json
-
-    - name: Create or Update Palo Alto Networks Security Rule
+    - name: Create the 'Ansible Rule' security rule
       block:
-        - name: Attempt to create the security rule
+        - name: Attempt to create the security rule via API
           ansible.builtin.uri:
             url: "{{ api_base_url }}/config/security/v1/security-rules"
             method: POST
             headers:
               Content-Type: "application/json"
-              Authorization: "Bearer {{ api_access_token }}"
+              Authorization: "Bearer {{ api_access_token }}" # This comes from authenticate.yml
             body_format: json
             body:
               name: "Ansible Rule"
@@ -70,7 +39,7 @@
                 group:
                   - "best-practice"
             status_code: 201
-            validate_certs: true
+            validate_certs: true # Set to false if using self-signed certs
           register: security_rule_response
 
         - name: Display success message
@@ -82,4 +51,4 @@
           ansible.builtin.fail:
             msg: |
               Failed to create the security rule. The API returned the following error:
-              {{ security_rule_response.json._errors | to_nice_json }}
+              {{ security_rule_response.json | to_json }}

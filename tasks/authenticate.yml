@@ -1,0 +1,17 @@
+---
+- name: Get Bearer Token
+  ansible.builtin.uri:
+    url: "{{ api_auth_url }}"
+    method: POST
+    headers:
+      Authorization: "{{ api_auth_token }}"
+    body_format: form-urlencoded
+    body:
+      grant_type: "client_credentials"
+      scope: "{{ api_scope }}"
+    status_code: 200
+  register: auth_response
+
+- name: Set the access token as a fact
+  ansible.builtin.set_fact:
+    api_access_token: "{{ auth_response.json.access_token }}"
